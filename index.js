@@ -1,6 +1,13 @@
 const mysql = require('mysql');
 const inquirer = require('inquirer');
 const table = require('console.table');
+let employeeNames = [];
+let roleList = [];
+let roleCodes = [];
+let employeeCodes = [];
+let departmentCodes = [];
+let managerID;
+let roleID;
 
 let list = {
   type: 'list',
@@ -29,7 +36,7 @@ let employeeQuestions = [{
   type: 'list',
   name: 'manager',
   message: 'Who is the employee\'s manager?',
-  choices: managerList
+  choices: employeeNames
 }
 ]
 
@@ -43,6 +50,69 @@ let connection = mysql.createConnection({
     password: "admin",
     database: "employee_management_db"
   });
+
+  const finishAddingEmployee = () => {
+    fillEmployeeNames();
+    codeEmployees();
+    inquire();
+  }
+
+  const codeEmployees = () => {
+    connection.query('select id, first_name, last_name from employee', function(err, res) {
+      if (err) throw err;
+      if (employeeCodes.length !== 0) {
+        employeeCodes.empty();
+      }
+      employeeCodes = res;
+    })
+  }
+
+  const codeRoles = () => {
+    connection.query('select id, title from role', function(err, res) {
+      if (err) throw err;
+      if (roleCodes.length !== 0) {
+        roleCodes.empty();
+      }
+      roleCodes = res;
+    })
+  }
+
+  const codeDepartments = () => {
+    connection.query('select id, name from department', function(err, res) {
+      if (err) throw err;
+      if (departmentCodes.length !== 0) {
+        departmentCodes.empty();
+      }
+      departmentCodes = res;
+    })
+  }
+
+  const fillEmployeeNames = () => {
+    connection.query('select * from employee', function(err, res) {
+      if (err) throw err;
+      if (employeeNames.length !== 0) {
+        employeeNames.empty();
+      }
+      employeeNames.push('None');
+      for (let i = 0; i < res.length; i++) {
+        employeeNames.push(`${res[i].first_name} ${res[i].last_name}`)
+      }
+      // console.log(employeeNames);
+    })
+  }
+
+  const fillRoles = () => {
+    connection.query('select * from role', function(err, res) {
+      if (err) throw err;
+      if (roleList.length !== 0) {
+        roleList.empty();
+      }
+      for (let i = 0; i < res.length; i++) {
+        roleList.push(res[i].title)
+      }
+      // console.log(roleList);
+    })
+  }
 
   const readEmployees = () => {
     connection.query('select employee.id, employee.first_name, employee.last_name, employee.manager_id, role.title, role.salary, department.name from employee inner join role on employee.role_id = role.id inner join department on role.department_id = department.id', function(err, res) {
@@ -92,8 +162,25 @@ let connection = mysql.createConnection({
   const addEmployee = () => {
     inquirer.prompt(employeeQuestions).then(
       answers => {
-        console.log(answers);
-        inquire();
+        for (let i = 0; i < roleCodes.length; i++) {
+          if (roleCodes[i].title === answers.role) {
+            roleID = roleCodes[i].id;
+          }
+        }
+        if (answers.manager === 'None') {
+          managerID = null;
+        } else {
+          for (let i = 0; i < employeeCodes.length; i++) {
+            if (`${employeeCodes[i].first_name} ${employeeCodes[i].last_name}` === answers.manager) {
+              managerID = employeeCodes[i].id;
+            }
+          }
+        }
+        connection.query(`insert into employee (first_name, last_name, role_id, manager_id) values ('${answers.firstName}', '${answers.lastName}', ${roleID}, ${managerID})`, function(err, res) {
+          if (err) throw err;
+          console.log(`${answers.firstName} ${answers.lastName} added`);
+          finishAddingEmployee();
+        })
       }
     )
   }
@@ -120,5 +207,10 @@ let connection = mysql.createConnection({
   connection.connect(function(err) {
     if (err) throw err;
     console.log("connected as id " + connection.threadId + "\n");
+    fillEmployeeNames();
+    fillRoles();
+    codeEmployees();
+    codeRoles();
+    codeDepartments();
     inquire();
   });
