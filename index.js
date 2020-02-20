@@ -60,9 +60,6 @@ let connection = mysql.createConnection({
   const codeEmployees = () => {
     connection.query('select id, first_name, last_name from employee', function(err, res) {
       if (err) throw err;
-      if (employeeCodes.length !== 0) {
-        employeeCodes.empty();
-      }
       employeeCodes = res;
     })
   }
@@ -91,13 +88,35 @@ let connection = mysql.createConnection({
     connection.query('select * from employee', function(err, res) {
       if (err) throw err;
       if (employeeNames.length !== 0) {
-        employeeNames.empty();
+        employeeNames = [];
       }
       employeeNames.push('None');
       for (let i = 0; i < res.length; i++) {
         employeeNames.push(`${res[i].first_name} ${res[i].last_name}`)
       }
-      // console.log(employeeNames);
+      employeeQuestions = [{
+        type: 'input',
+        name: 'firstName',
+        message: 'What is the employee\'s first name?'
+      },
+      {
+        type: 'input',
+        name: 'lastName',
+        message: 'What is the employee\'s last name?'
+      },
+      {
+        type: 'list',
+        name: 'role',
+        message: 'What is the employee\'s role?',
+        choices: roleList
+      },
+      {
+        type: 'list',
+        name: 'manager',
+        message: 'Who is the employee\'s manager?',
+        choices: employeeNames
+      }
+      ]
     })
   }
 
@@ -105,7 +124,7 @@ let connection = mysql.createConnection({
     connection.query('select * from role', function(err, res) {
       if (err) throw err;
       if (roleList.length !== 0) {
-        roleList.empty();
+        roleList = [];
       }
       for (let i = 0; i < res.length; i++) {
         roleList.push(res[i].title)
