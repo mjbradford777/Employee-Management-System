@@ -3,11 +3,13 @@ const inquirer = require('inquirer');
 const table = require('console.table');
 let employeeNames = [];
 let roleList = [];
+let departmentList = [];
 let roleCodes = [];
 let employeeCodes = [];
 let departmentCodes = [];
 let managerID;
 let roleID;
+let departmentID;
 
 let list = {
   type: 'list',
@@ -40,6 +42,29 @@ let employeeQuestions = [{
 }
 ]
 
+let departmentQuestions = {
+  type: 'input',
+  name: 'name',
+  message: 'What is the name of the department?'
+}
+
+let roleQuestions = [{
+  type: 'input',
+  name: 'title',
+  message: 'What is the title of the role?'
+},
+{
+  type: 'input',
+  name: 'salary',
+  message: 'What is the role\'s salary?'
+},
+{
+  type: 'list',
+  name: 'department',
+  message: 'What department does the role belong to?',
+  choices: departmentList
+}]
+
 let connection = mysql.createConnection({
     host: "localhost",
   
@@ -68,7 +93,7 @@ let connection = mysql.createConnection({
     connection.query('select id, title from role', function(err, res) {
       if (err) throw err;
       if (roleCodes.length !== 0) {
-        roleCodes.empty();
+        roleCodes = [];
       }
       roleCodes = res;
     })
@@ -78,7 +103,7 @@ let connection = mysql.createConnection({
     connection.query('select id, name from department', function(err, res) {
       if (err) throw err;
       if (departmentCodes.length !== 0) {
-        departmentCodes.empty();
+        departmentCodes = [];
       }
       departmentCodes = res;
     })
@@ -94,29 +119,13 @@ let connection = mysql.createConnection({
       for (let i = 0; i < res.length; i++) {
         employeeNames.push(`${res[i].first_name} ${res[i].last_name}`)
       }
-      employeeQuestions = [{
-        type: 'input',
-        name: 'firstName',
-        message: 'What is the employee\'s first name?'
-      },
-      {
-        type: 'input',
-        name: 'lastName',
-        message: 'What is the employee\'s last name?'
-      },
-      {
-        type: 'list',
-        name: 'role',
-        message: 'What is the employee\'s role?',
-        choices: roleList
-      },
+      employeeQuestions[3] =
       {
         type: 'list',
         name: 'manager',
         message: 'Who is the employee\'s manager?',
         choices: employeeNames
       }
-      ]
     })
   }
 
@@ -129,7 +138,30 @@ let connection = mysql.createConnection({
       for (let i = 0; i < res.length; i++) {
         roleList.push(res[i].title)
       }
-      // console.log(roleList);
+      employeeQuestions[2] = {
+        type: 'list',
+        name: 'role',
+        message: 'What is the employee\'s role?',
+        choices: roleList
+      }
+    })
+  }
+
+  const fillDepartments = () => {
+    connection.query('select * from department', function(err, res) {
+      if (err) throw err;
+      if (departmentList.length !== 0) {
+        departmentList = [];
+      }
+      for (let i = 0; i < res.length; i++) {
+        departmentList.push(res[i].name)
+      }
+      roleQuestions[2] = {
+        type: 'list',
+        name: 'department',
+        message: 'What department does the role belong to?',
+        choices: departmentList
+      };
     })
   }
 
@@ -204,6 +236,39 @@ let connection = mysql.createConnection({
     )
   }
 
+  const addDepartment = () => {
+    inquirer.prompt(departmentQuestions).then(
+      answers => {
+        connection.query(`insert into department (name) values ('${answers.name}')`, function(err, res) {
+          if (err) throw err;
+          console.log(`${answers.name} added`);
+          codeDepartments();
+          fillDepartments();
+          inquire();
+        })
+      }
+    )
+  }
+
+  const addRole = () => {
+    inquirer.prompt(roleQuestions).then(
+      answers => {
+        for (let i = 0; i < departmentCodes.length; i++) {
+          if (departmentCodes[i].name === answers.department) {
+            departmentID = departmentCodes[i].id;
+          }
+        }
+        connection.query(`insert into role (title, salary, department_id) values ('${answers.title}', ${answers.salary}, ${departmentID})`, function(err, res) {
+          if (err) throw err;
+          console.log(`${answers.title} added`);
+          codeRoles();
+          fillRoles();
+          inquire();
+        })
+      }
+    )
+  }
+
   const inquire = () => {
     inquirer
       .prompt(list).then(
@@ -218,6 +283,10 @@ let connection = mysql.createConnection({
             connection.end();
           } else if (answers.selection === 'Add Employee') {
             addEmployee();
+          } else if (answers.selection === 'Add Department') {
+            addDepartment();
+          } else if (answers.selection === 'Add Role') {
+            addRole();
           }
         }
       );
@@ -228,6 +297,7 @@ let connection = mysql.createConnection({
     console.log("connected as id " + connection.threadId + "\n");
     fillEmployeeNames();
     fillRoles();
+    fillDepartments();
     codeEmployees();
     codeRoles();
     codeDepartments();
