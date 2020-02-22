@@ -1,6 +1,7 @@
 const mysql = require('mysql');
 const inquirer = require('inquirer');
 const table = require('console.table');
+const events = require('events').EventEmitter.prototype._maxListeners = 100;
 let employeeNames = [];
 let roleList = [];
 let departmentList = [];
@@ -19,7 +20,7 @@ let list = {
   type: 'list',
   name: 'selection',
   message: 'What do you want to do?',
-  choices: ['View All Employees', 'View All Departments', 'View All Roles', 'View Employees By Manager', 'Add Employee', 'Add Department', 'Add Role', 'Update An Employee Role', 'Update Employee Manager', 'End']
+  choices: ['View All Employees', 'View All Departments', 'View All Roles', 'View Employees By Manager', 'Add Employee', 'Add Department', 'Add Role', 'Update An Employee Role', 'Update Employee Manager', 'Delete Employee', 'End']
 }
 
 let employeeQuestions = [{
@@ -99,6 +100,13 @@ let managerViewQuestions = {
   type: 'list',
   name: 'manager',
   message: 'View by which manager?',
+  choices: employeeNames
+}
+
+let deleteEmployeeQuestions = {
+  type: 'list',
+  name: 'employee',
+  message: 'Which employee would you like to delete?',
   choices: employeeNames
 }
 
@@ -423,6 +431,31 @@ let connection = mysql.createConnection({
     )
   }
 
+  const deleteEmployee = () => {
+    inquirer.prompt(deleteEmployeeQuestions).then(
+      answers => {
+        for (let i = 0; i < answers.employee.length; i++) {
+          if (answers.employee.charAt(i) === ' ') {
+            for (let j = 0; j < i; j++) {
+              firstName += answers.employee[j];
+            }
+            for (let k = i + 1; k < answers.employee.length; k++) {
+              lastName += answers.employee[k];
+            }
+          }
+        }
+
+        connection.query(`delete from employee where first_name = '${firstName}' AND last_name = '${lastName}'`, function(err, res) {
+          if (err) throw err;
+          console.log(`${firstName} ${lastName} has been deleted`);
+          fillEmployeeNames();
+          codeEmployees();
+          inquire();
+        })
+      }
+    )
+  }
+
   const inquire = () => {
     inquirer
       .prompt(list).then(
@@ -447,6 +480,8 @@ let connection = mysql.createConnection({
             updateManager();
           } else if (answers.selection === 'View Employees By Manager') {
             viewByManager();
+          } else if (answers.selection === 'Delete Employee') {
+            deleteEmployee();
           }
         }
       );
