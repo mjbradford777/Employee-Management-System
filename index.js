@@ -19,7 +19,7 @@ let list = {
   type: 'list',
   name: 'selection',
   message: 'What do you want to do?',
-  choices: ['View All Employees', 'View All Departments', 'View All Roles', 'Add Employee', 'Add Department', 'Add Role', 'Update An Employee Role', 'Update Employee Manager', 'End']
+  choices: ['View All Employees', 'View All Departments', 'View All Roles', 'View Employees By Manager', 'Add Employee', 'Add Department', 'Add Role', 'Update An Employee Role', 'Update Employee Manager', 'End']
 }
 
 let employeeQuestions = [{
@@ -95,6 +95,13 @@ let updateManagerQuestions = [{
   choices: employeeNames
 }]
 
+let managerViewQuestions = {
+  type: 'list',
+  name: 'manager',
+  message: 'View by which manager?',
+  choices: employeeNames
+}
+
 let connection = mysql.createConnection({
     host: "localhost",
   
@@ -117,6 +124,14 @@ let connection = mysql.createConnection({
       if (err) throw err;
       fillEmployeeNames();
       codeEmployees();
+      inquire();
+    })
+  }
+
+  const finishManagerView = () => {
+    connection.query(`select first_name, last_name from employee where manager_id = ${managerID}`, function(err, res) {
+      if (err) throw err;
+      console.table(res);
       inquire();
     })
   }
@@ -247,6 +262,34 @@ let connection = mysql.createConnection({
       console.table(res);
       inquire();
     });
+  }
+
+  const viewByManager = () => {
+    inquirer.prompt(managerViewQuestions).then(
+      answers => {
+        if (answers.manager === 'None') {
+          console.log('Invalid choice');
+          inquire();
+        } else {
+          for (let i = 0; i < answers.manager.length; i++) {
+            if (answers.manager.charAt(i) === ' ') {
+              for (let j = 0; j < i; j++) {
+                managerFirstName += answers.manager[j];
+              }
+              for (let k = i + 1; k < answers.manager.length; k++) {
+                managerLastName += answers.manager[k];
+              }
+            }
+          }
+        }
+
+        connection.query(`select id from employee where first_name = '${managerFirstName}' AND last_name = '${managerLastName}'`, function(err, res) {
+          if (err) throw err;
+          managerID = res[0].id;
+          finishManagerView();
+        })
+      }
+    )
   }
 
   const addEmployee = () => {
@@ -402,6 +445,8 @@ let connection = mysql.createConnection({
             updateRole();
           } else if (answers.selection === 'Update Employee Manager') {
             updateManager();
+          } else if (answers.selection === 'View Employees By Manager') {
+            viewByManager();
           }
         }
       );
