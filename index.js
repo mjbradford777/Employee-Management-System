@@ -10,12 +10,14 @@ let departmentCodes = [];
 let managerID;
 let roleID;
 let departmentID;
+let firstName = '';
+let lastName = '';
 
 let list = {
   type: 'list',
   name: 'selection',
   message: 'What do you want to do?',
-  choices: ['View All Employees', 'View All Departments', 'View All Roles', 'Add Employee', 'Add Department', 'Add Role', 'End']
+  choices: ['View All Employees', 'View All Departments', 'View All Roles', 'Add Employee', 'Add Department', 'Add Role', 'Update An Employee Role', 'End']
 }
 
 let employeeQuestions = [{
@@ -63,6 +65,19 @@ let roleQuestions = [{
   name: 'department',
   message: 'What department does the role belong to?',
   choices: departmentList
+}]
+
+let updateRoleQuestions = [{
+  type: 'list',
+  name: 'name',
+  message: 'Which employee would you like to update?',
+  choices: employeeNames
+},
+{
+  type: 'list',
+  name: 'role',
+  message: 'What role do they have?',
+  choices: roleList
 }]
 
 let connection = mysql.createConnection({
@@ -269,6 +284,34 @@ let connection = mysql.createConnection({
     )
   }
 
+  const updateRole = () => {
+    inquirer.prompt(updateRoleQuestions).then(
+      answers => {
+        for (let i = 0; i < answers.name.length; i++) {
+          if (answers.name.charAt(i) === ' ') {
+            for (let j = 0; j < i; j++) {
+              firstName += answers.name[j];
+            }
+            for (let k = i + 1; k < answers.name.length; k++) {
+              lastName += answers.name[k];
+            }
+          }
+        }
+        for (let i = 0; i < roleCodes.length; i++) {
+          if (roleCodes[i].title === answers.role) {
+            roleID = roleCodes[i].id;
+          }
+        }
+        connection.query(`update employee set role_id = ${roleID} where first_name = '${firstName}' AND last_name = '${lastName}'`, function(err, res) {
+          if (err) throw err;
+          fillEmployeeNames();
+          codeEmployees();
+          inquire();
+        })
+      }
+    )
+  }
+
   const inquire = () => {
     inquirer
       .prompt(list).then(
@@ -287,6 +330,8 @@ let connection = mysql.createConnection({
             addDepartment();
           } else if (answers.selection === 'Add Role') {
             addRole();
+          } else if (answers.selection === 'Update An Employee Role') {
+            updateRole();
           }
         }
       );
