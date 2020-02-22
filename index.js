@@ -16,6 +16,7 @@ let lastName = '';
 let managerFirstName = '';
 let managerLastName = '';
 
+//Creating question lists for various inquirer calls
 let list = {
   type: 'list',
   name: 'selection',
@@ -110,6 +111,7 @@ let deleteEmployeeQuestions = {
   choices: employeeNames
 }
 
+//establishing connection to mysql
 let connection = mysql.createConnection({
     host: "localhost",
   
@@ -121,12 +123,14 @@ let connection = mysql.createConnection({
     database: "employee_management_db"
   });
 
+  //concluding add employee function
   const finishAddingEmployee = () => {
     fillEmployeeNames();
     codeEmployees();
     inquire();
   }
 
+  //concluding update manager function
   const finishUpdatingManager = () => {
     connection.query(`update employee set manager_id = ${managerID} where first_name = '${firstName}' AND last_name = '${lastName}'`, function(err, res) {
       if (err) throw err;
@@ -136,6 +140,7 @@ let connection = mysql.createConnection({
     })
   }
 
+  //concluding view by manager function
   const finishManagerView = () => {
     connection.query(`select first_name, last_name from employee where manager_id = ${managerID}`, function(err, res) {
       if (err) throw err;
@@ -144,6 +149,7 @@ let connection = mysql.createConnection({
     })
   }
 
+  //storing employees with ids in variable
   const codeEmployees = () => {
     connection.query('select id, first_name, last_name from employee', function(err, res) {
       if (err) throw err;
@@ -151,6 +157,7 @@ let connection = mysql.createConnection({
     })
   }
 
+  //storing roles with ids in variable
   const codeRoles = () => {
     connection.query('select id, title from role', function(err, res) {
       if (err) throw err;
@@ -161,6 +168,7 @@ let connection = mysql.createConnection({
     })
   }
 
+  //storing departments with ids in variable
   const codeDepartments = () => {
     connection.query('select id, name from department', function(err, res) {
       if (err) throw err;
@@ -171,6 +179,7 @@ let connection = mysql.createConnection({
     })
   }
 
+  //making employee list for inquirer question
   const fillEmployeeNames = () => {
     connection.query('select * from employee', function(err, res) {
       if (err) throw err;
@@ -191,6 +200,7 @@ let connection = mysql.createConnection({
     })
   }
 
+  //making role list for inquirer question
   const fillRoles = () => {
     connection.query('select * from role', function(err, res) {
       if (err) throw err;
@@ -209,6 +219,7 @@ let connection = mysql.createConnection({
     })
   }
 
+  //making department list for inquirer question
   const fillDepartments = () => {
     connection.query('select * from department', function(err, res) {
       if (err) throw err;
@@ -227,9 +238,11 @@ let connection = mysql.createConnection({
     })
   }
 
+  //view all employees function
   const readEmployees = () => {
     connection.query('select employee.id, employee.first_name, employee.last_name, employee.manager_id, role.title, role.salary, department.name from employee inner join role on employee.role_id = role.id inner join department on role.department_id = department.id', function(err, res) {
       if (err) throw err;
+      //formatting table view
       for (let i = 0; i < res.length; i++) {
         res[i].department_name = res[i].name;
         delete res[i].name;
@@ -250,9 +263,11 @@ let connection = mysql.createConnection({
     });
   }
 
+  //view all roles function
   const readRoles = () => {
     connection.query('select role.title, role.salary, role.department_id, department.id, department.name from role inner join department on role.department_id = department.id', function(err, res) {
       if (err) throw err;
+      //formatting table view
       for (let i = 0; i < res.length; i++) {
         res[i].department_name = res[i].name;
         delete res[i].name;
@@ -264,6 +279,7 @@ let connection = mysql.createConnection({
     });
   }
 
+  //view all departments function
   const readDepartments = () => {
     connection.query('select * from department', function(err, res) {
       if (err) throw err;
@@ -272,6 +288,7 @@ let connection = mysql.createConnection({
     });
   }
 
+  //view employees by manager function
   const viewByManager = () => {
     inquirer.prompt(managerViewQuestions).then(
       answers => {
@@ -279,6 +296,7 @@ let connection = mysql.createConnection({
           console.log('Invalid choice');
           inquire();
         } else {
+          //changing list view name to usable query info
           for (let i = 0; i < answers.manager.length; i++) {
             if (answers.manager.charAt(i) === ' ') {
               for (let j = 0; j < i; j++) {
@@ -300,9 +318,11 @@ let connection = mysql.createConnection({
     )
   }
 
+  //add employee function
   const addEmployee = () => {
     inquirer.prompt(employeeQuestions).then(
       answers => {
+        //changing list view to usable query info
         for (let i = 0; i < roleCodes.length; i++) {
           if (roleCodes[i].title === answers.role) {
             roleID = roleCodes[i].id;
@@ -326,6 +346,7 @@ let connection = mysql.createConnection({
     )
   }
 
+  //add department function
   const addDepartment = () => {
     inquirer.prompt(departmentQuestions).then(
       answers => {
@@ -340,9 +361,11 @@ let connection = mysql.createConnection({
     )
   }
 
+  //add role function
   const addRole = () => {
     inquirer.prompt(roleQuestions).then(
       answers => {
+        //changing list view to usable query info
         for (let i = 0; i < departmentCodes.length; i++) {
           if (departmentCodes[i].name === answers.department) {
             departmentID = departmentCodes[i].id;
@@ -359,9 +382,11 @@ let connection = mysql.createConnection({
     )
   }
 
+  //update employee role function
   const updateRole = () => {
     inquirer.prompt(updateRoleQuestions).then(
       answers => {
+        //changing list view to usable query info
         for (let i = 0; i < answers.name.length; i++) {
           if (answers.name.charAt(i) === ' ') {
             for (let j = 0; j < i; j++) {
@@ -387,6 +412,7 @@ let connection = mysql.createConnection({
     )
   }
 
+  //update employee manager function
   const updateManager = () => {
     inquirer.prompt(updateManagerQuestions).then(
       answers => {
@@ -394,6 +420,7 @@ let connection = mysql.createConnection({
           console.log('Invalid choice');
           inquire();
         } else {
+          //changing list view to usable query info
           for (let i = 0; i < answers.employee.length; i++) {
             if (answers.employee.charAt(i) === ' ') {
               for (let j = 0; j < i; j++) {
@@ -431,10 +458,12 @@ let connection = mysql.createConnection({
     )
   }
 
+  //delete employee function
   const deleteEmployee = () => {
     inquirer.prompt(deleteEmployeeQuestions).then(
       answers => {
         for (let i = 0; i < answers.employee.length; i++) {
+          //changing list view to usable query info
           if (answers.employee.charAt(i) === ' ') {
             for (let j = 0; j < i; j++) {
               firstName += answers.employee[j];
@@ -456,6 +485,7 @@ let connection = mysql.createConnection({
     )
   }
 
+  //base inquirer function to pose menu options
   const inquire = () => {
     inquirer
       .prompt(list).then(
@@ -487,6 +517,7 @@ let connection = mysql.createConnection({
       );
   }
 
+  //initializing application
   connection.connect(function(err) {
     if (err) throw err;
     console.log("connected as id " + connection.threadId + "\n");
