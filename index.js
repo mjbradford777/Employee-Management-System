@@ -12,12 +12,14 @@ let roleID;
 let departmentID;
 let firstName = '';
 let lastName = '';
+let managerFirstName = '';
+let managerLastName = '';
 
 let list = {
   type: 'list',
   name: 'selection',
   message: 'What do you want to do?',
-  choices: ['View All Employees', 'View All Departments', 'View All Roles', 'Add Employee', 'Add Department', 'Add Role', 'Update An Employee Role', 'End']
+  choices: ['View All Employees', 'View All Departments', 'View All Roles', 'Add Employee', 'Add Department', 'Add Role', 'Update An Employee Role', 'Update Employee Manager', 'End']
 }
 
 let employeeQuestions = [{
@@ -80,6 +82,19 @@ let updateRoleQuestions = [{
   choices: roleList
 }]
 
+let updateManagerQuestions = [{
+  type: 'list',
+  name: 'employee',
+  message: 'Which employee do you want to update?',
+  choices: employeeNames
+},
+{
+  type: 'list',
+  name: 'manager',
+  message: 'Which employee will manage them?',
+  choices: employeeNames
+}]
+
 let connection = mysql.createConnection({
     host: "localhost",
   
@@ -95,6 +110,15 @@ let connection = mysql.createConnection({
     fillEmployeeNames();
     codeEmployees();
     inquire();
+  }
+
+  const finishUpdatingManager = () => {
+    connection.query(`update employee set manager_id = ${managerID} where first_name = '${firstName}' AND last_name = '${lastName}'`, function(err, res) {
+      if (err) throw err;
+      fillEmployeeNames();
+      codeEmployees();
+      inquire();
+    })
   }
 
   const codeEmployees = () => {
@@ -312,6 +336,50 @@ let connection = mysql.createConnection({
     )
   }
 
+  const updateManager = () => {
+    inquirer.prompt(updateManagerQuestions).then(
+      answers => {
+        if (answers.employee === answers.manager) {
+          console.log('Invalid choice');
+          inquire();
+        } else {
+          for (let i = 0; i < answers.employee.length; i++) {
+            if (answers.employee.charAt(i) === ' ') {
+              for (let j = 0; j < i; j++) {
+                firstName += answers.employee[j];
+              }
+              for (let k = i + 1; k < answers.employee.length; k++) {
+                lastName += answers.employee[k];
+              }
+            }
+          }
+
+          if (answers.manager === 'None') {
+            managerID = null;
+            finishUpdatingManager();
+          } else {
+            for (let i = 0; i < answers.manager.length; i++) {
+              if (answers.manager.charAt(i) === ' ') {
+                for (let j = 0; j < i; j++) {
+                  managerFirstName += answers.manager[j];
+                }
+                for (let k = i + 1; k < answers.manager.length; k++) {
+                  managerLastName += answers.manager[k];
+                }
+              }
+            }
+  
+            connection.query(`select id from employee where first_name = '${managerFirstName}' AND last_name = '${managerLastName}'`, function(err, res) {
+              if (err) throw err;
+              managerID = res[0].id;
+              finishUpdatingManager();
+            })
+          }
+        }
+      }
+    )
+  }
+
   const inquire = () => {
     inquirer
       .prompt(list).then(
@@ -332,6 +400,8 @@ let connection = mysql.createConnection({
             addRole();
           } else if (answers.selection === 'Update An Employee Role') {
             updateRole();
+          } else if (answers.selection === 'Update Employee Manager') {
+            updateManager();
           }
         }
       );
